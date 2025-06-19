@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <link rel="icon" type="image/x-icon" href="chaves.ico">
+</head>
+
+
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Chaves</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        #tela-login { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .login-card { max-width: 400px; width: 100%; }
+        #conteudo-aplicativo { display: none; }
+        .status-disponivel { color: green; font-weight: bold; }
+        .status-em-uso { color: red; font-weight: bold; }
+        .card-header { background-color: #e9ecef; }
+        .btn-delete { color: #dc3545; cursor: pointer; }
+        .btn-delete:hover { color: #a71d2a; }
+        .table-container { max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+    <!-- TELA DE LOGIN -->
+    <div id="tela-login"><div class="card login-card p-4"><div class="card-body"><h3 class="card-title text-center mb-4">Acessar Sistema</h3><form id="form-login"><div class="mb-3"><label for="usuario" class="form-label">Usuário</label><input type="text" class="form-control" id="usuario" required></div><div class="mb-3"><label for="senha" class="form-label">Senha</label><input type="password" class="form-control" id="senha" required></div><div id="login-error" class="alert alert-danger d-none" role="alert">Usuário ou senha inválidos.</div><button type="submit" class="btn btn-primary w-100">Entrar</button></form></div></div></div>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div id="conteudo-aplicativo" class="container mt-4">
+        <header class="d-flex justify-content-between align-items-center mb-4 flex-wrap"><div class="me-auto"><h1>Sistema de Gestão de Chaves</h1><p class="text-muted mb-0">Versão Local</p></div><div class="d-flex gap-2 mt-2 mt-md-0"><button id="btn-importar" class="btn btn-outline-primary" title="Importar Dados"><i class="bi bi-upload"></i> Importar</button><button id="btn-exportar" class="btn btn-outline-secondary" title="Exportar Dados"><i class="bi bi-download"></i> Exportar</button><button id="btn-logout" class="btn btn-danger" title="Sair"><i class="bi bi-box-arrow-right"></i> Sair</button><input type="file" id="input-import-file" class="d-none" accept=".json,.txt"></div></header>
+        <div class="card mb-4"><div class="card-header">Ações Rápidas</div><div class="card-body text-center d-flex flex-wrap justify-content-center gap-2"><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#retirarModal">Retirar Chave</button><button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#devolverModal">Devolver Chave</button><button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#addChaveModal">Adicionar Chave</button><button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#addPessoaModal">Adicionar Pessoa</button><button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#addSetorModal">Adicionar Setor</button><button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#addResponsavelModal">Adicionar Responsável</button></div></div>
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card mb-4"><div class="card-header"><h3>Painel de Chaves</h3></div><div class="card-body"><div class="mb-3"><input type="text" id="filtro-chaves" class="form-control" placeholder=" Buscar chave por nome..."></div><div class="table-container"><table class="table table-striped table-hover"><thead><tr><th>Chave</th><th>Status</th><th>Em posse de</th><th>Ações</th></tr></thead><tbody id="tabela-chaves"></tbody></table></div></div></div>
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap"><h3 class="me-auto">Histórico</h3><button class="btn btn-secondary btn-sm" id="btn-toggle-historico">Ocultar Histórico</button></div>
+                    <div id="area-historico"><div class="card-body"><div id="area-filtros-historico" class="row g-3 mb-3 p-2 border rounded bg-light"><div class="col-md-4"><label for="filtro-texto" class="form-label">Pesquisar</label><input type="text" class="form-control" id="filtro-texto" placeholder="Nome, chave, setor ou responsável..."></div><div class="col-md-3"><label for="filtro-data" class="form-label">Data</label><input type="date" class="form-control" id="filtro-data"></div><div class="col-md-3"><label for="filtro-acao" class="form-label">Ação</label><select id="filtro-acao" class="form-select"><option value="">Todas</option><option value="Retirada">Retirada</option><option value="Devolução">Devolução</option></select></div><div class="col-md-2 d-flex align-items-end"><button class="btn btn-outline-secondary w-100" id="btn-limpar-filtros">Limpar</button></div></div><div class="table-container"><table class="table table-sm"><thead><tr><th>Data/Hora</th><th>Chave</th><th>Pessoa</th><th>Setor</th><th>Responsável</th><th>Ação</th><th>Ações</th></tr></thead><tbody id="tabela-historico"></tbody></table></div></div></div>
+                </div>
+            </div>
+            <!-- ***** ALTERAÇÕES NESTA SEÇÃO ***** -->
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header"><h3>Pessoas Cadastradas</h3></div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <ul class="list-group" id="lista-pessoas"></ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header"><h3>Setores/Empresas</h3></div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <ul class="list-group" id="lista-setores"></ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Responsáveis pela Entrega</h3></div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <ul class="list-group" id="lista-responsaveis"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- ***** FIM DAS ALTERAÇÕES ***** -->
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div class="modal fade" id="addResponsavelModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Adicionar Responsável</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="form-add-responsavel"><div class="mb-3"><label for="nome-responsavel" class="form-label">Nome</label><input type="text" class="form-control" id="nome-responsavel" required></div><button type="submit" class="btn btn-primary">Salvar</button></form></div></div></div></div>
+    <div class="modal fade" id="retirarModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Retirar Chave</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="form-retirar-chave"><div class="mb-3"><label for="select-chave-retirar" class="form-label">Chave</label><select class="form-select" id="select-chave-retirar" required></select></div><div class="mb-3"><label for="select-pessoa-retirar" class="form-label">Pessoa (Quem retira)</label><select class="form-select" id="select-pessoa-retirar" required></select></div><div class="mb-3"><label for="select-responsavel-retirar" class="form-label">Responsável (Quem entrega)</label><select class="form-select" id="select-responsavel-retirar" required></select></div><button type="submit" class="btn btn-primary">Confirmar Retirada</button></form></div></div></div></div>
+    <div class="modal fade" id="devolverModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Devolver Chave</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="form-devolver-chave"><div class="mb-3"><label for="select-chave-devolver" class="form-label">Chave</label><select class="form-select" id="select-chave-devolver" required></select></div><div class="mb-3"><label for="select-responsavel-devolver" class="form-label">Responsável (Quem recebe)</label><select class="form-select" id="select-responsavel-devolver" required></select></div><button type="submit" class="btn btn-success">Confirmar Devolução</button></form></div></div></div></div>
+    <div class="modal fade" id="addChaveModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Adicionar Chave</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="form-add-chave"><div class="mb-3"><label for="nome-chave" class="form-label">Nome</label><input type="text" class="form-control" id="nome-chave" required></div><button type="submit" class="btn btn-primary">Salvar</button></form></div></div></div></div><div class="modal fade" id="addSetorModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Adicionar Setor/Empresa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="form-add-setor"><div class="mb-3"><label for="nome-setor" class="form-label">Nome</label><input type="text" class="form-control" id="nome-setor" required></div><button type="submit" class="btn btn-primary">Salvar</button></form></div></div></div></div><div class="modal fade" id="addPessoaModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Adicionar Pessoa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="form-add-pessoa"><div class="mb-3"><label for="nome-pessoa" class="form-label">Nome</label><input type="text" class="form-control" id="nome-pessoa" required></div><div class="mb-3"><label for="select-setor-pessoa" class="form-label">Setor</label><select class="form-select" id="select-setor-pessoa" required></select></div><button type="submit" class="btn btn-primary">Salvar</button></form></div></div></div></div>
+    
+    <div class="modal fade" id="senhaMestreModal" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Confirmar Exclusão</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="form-senha-mestre"><input type="hidden" id="id-historico-excluir"><p>Digite a senha mestre para continuar.</p><div class="mb-3"><label for="input-senha-mestre" class="form-label">Senha Mestre</label><input type="password" class="form-control" id="input-senha-mestre" required></div><div id="senha-mestre-error" class="alert alert-danger d-none" role="alert">Senha incorreta.</div><button type="submit" class="btn btn-danger">Excluir Registro</button></form></div></div></div></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.getElementById('filtro-chaves').style.fontFamily = "bootstrap-icons, sans-serif";
+        document.addEventListener('DOMContentLoaded', () => {
+            const USUARIO_CORRETO = 'patrimonial'; const SENHA_CORRETA = 'cftv';
+            const telaLogin = document.getElementById('tela-login'), conteudoAplicativo = document.getElementById('conteudo-aplicativo'), formLogin = document.getElementById('form-login'), btnLogout = document.getElementById('btn-logout'), loginError = document.getElementById('login-error');
+            const mostrarAplicativo = () => { telaLogin.style.display = 'none'; conteudoAplicativo.style.display = 'block'; inicializarApp(); }; if (sessionStorage.getItem('usuarioLogado') === 'true') { mostrarAplicativo(); } formLogin.addEventListener('submit', (e) => { e.preventDefault(); const u = document.getElementById('usuario').value, s = document.getElementById('senha').value; if (u === USUARIO_CORRETO && s === SENHA_CORRETA) { sessionStorage.setItem('usuarioLogado', 'true'); mostrarAplicativo(); } else { loginError.classList.remove('d-none'); } }); btnLogout.addEventListener('click', () => { sessionStorage.removeItem('usuarioLogado'); location.reload(); });
+
+            function inicializarApp() {
+                const SENHA_MESTRE_EXCLUSAO = '031629';
+
+                const listaPessoas = document.getElementById('lista-pessoas'), listaSetores = document.getElementById('lista-setores'), listaResponsaveis = document.getElementById('lista-responsaveis');
+                const tabelaChavesBody = document.getElementById('tabela-chaves'), tabelaHistoricoBody = document.getElementById('tabela-historico');
+                const formAddChave = document.getElementById('form-add-chave'), formAddPessoa = document.getElementById('form-add-pessoa'), formAddSetor = document.getElementById('form-add-setor'), formAddResponsavel = document.getElementById('form-add-responsavel');
+                const retirarModalEl = document.getElementById('retirarModal'), devolverModalEl = document.getElementById('devolverModal'), addPessoaModalEl = document.getElementById('addPessoaModal');
+                const formRetirarChave = document.getElementById('form-retirar-chave'), formDevolverChave = document.getElementById('form-devolver-chave');
+                const filtroChavesEl = document.getElementById('filtro-chaves'), filtroTextoEl = document.getElementById('filtro-texto'), filtroDataEl = document.getElementById('filtro-data'), filtroAcaoEl = document.getElementById('filtro-acao');
+                const btnLimparFiltros = document.getElementById('btn-limpar-filtros'), btnToggleHistorico = document.getElementById('btn-toggle-historico'), areaHistorico = document.getElementById('area-historico');
+                const btnImportar = document.getElementById('btn-importar'), btnExportar = document.getElementById('btn-exportar'), inputImportFile = document.getElementById('input-import-file');
+                
+                const senhaMestreModalEl = document.getElementById('senhaMestreModal');
+                const formSenhaMestre = document.getElementById('form-senha-mestre');
+                const inputSenhaMestre = document.getElementById('input-senha-mestre');
+                const idHistoricoExcluirInput = document.getElementById('id-historico-excluir');
+                const senhaMestreError = document.getElementById('senha-mestre-error');
+                const senhaMestreModal = new bootstrap.Modal(senhaMestreModalEl);
+
+
+                const carregarDados = () => ({ chaves: JSON.parse(localStorage.getItem('chaves')) || [], pessoas: JSON.parse(localStorage.getItem('pessoas')) || [], setores: JSON.parse(localStorage.getItem('setores')) || [], responsaveis: JSON.parse(localStorage.getItem('responsaveis')) || [], historico: JSON.parse(localStorage.getItem('historico')) || [] });
+                const salvarDados = (dados) => { localStorage.setItem('chaves', JSON.stringify(dados.chaves)); localStorage.setItem('pessoas', JSON.stringify(dados.pessoas)); localStorage.setItem('setores', JSON.stringify(dados.setores)); localStorage.setItem('responsaveis', JSON.stringify(dados.responsaveis)); localStorage.setItem('historico', JSON.stringify(dados.historico)); };
+                let dados = carregarDados();
+                
+                const renderizarTudo = () => { renderizarTabelaChaves(); renderizarListaPessoas(); renderizarListaSetores(); renderizarListaResponsaveis(); renderizarTabelaHistorico(); };
+                const renderizarListaPessoas = () => { listaPessoas.innerHTML = ''; if (dados.pessoas.length === 0) { listaPessoas.innerHTML = '<li class="list-group-item">Nenhuma pessoa.</li>'; return; } dados.pessoas.forEach(p => { const s = dados.setores.find(s => s.id === p.setorId); listaPessoas.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center"><span>${p.nome} <small class="text-muted">(${s ? s.nome : 'Sem setor'})</small></span><i class="bi bi-trash btn-delete" onclick="excluirPessoa(${p.id})"></i></li>`; }); };
+                const renderizarListaSetores = () => { listaSetores.innerHTML = ''; if (dados.setores.length === 0) { listaSetores.innerHTML = '<li class="list-group-item">Nenhum setor.</li>'; return; } dados.setores.forEach(s => { listaSetores.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">${s.nome}<i class="bi bi-trash btn-delete" onclick="excluirSetor(${s.id})"></i></li>`; }); };
+                const renderizarListaResponsaveis = () => { listaResponsaveis.innerHTML = ''; if (dados.responsaveis.length === 0) { listaResponsaveis.innerHTML = '<li class="list-group-item">Nenhum responsável.</li>'; return; } dados.responsaveis.forEach(r => { listaResponsaveis.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">${r.nome}<i class="bi bi-trash btn-delete" onclick="excluirResponsavel(${r.id})"></i></li>`; }); };
+                
+                const renderizarTabelaChaves = () => { 
+                    tabelaChavesBody.innerHTML = ''; 
+                    const filtro = filtroChavesEl.value.trim(); 
+                    
+                    // ***** LÓGICA DE FILTRO CORRIGIDA *****
+                    let chavesFiltradas = dados.chaves;
+                    if (filtro) {
+                        try {
+                            const regex = new RegExp('\\b' + filtro + '\\b', 'i');
+                            chavesFiltradas = dados.chaves.filter(c => regex.test(String(c.nome)));
+                        } catch (e) {
+                            // Se o usuário digitar um caractere inválido para a regex, evita que a página quebre
+                            chavesFiltradas = []; 
+                        }
+                    }
+                    // ***** FIM DA CORREÇÃO *****
+
+                    if (chavesFiltradas.length === 0) { tabelaChavesBody.innerHTML = '<tr><td colspan="4" class="text-center">Nenhuma chave encontrada.</td></tr>'; return; } 
+                    chavesFiltradas.forEach(c => { const p = dados.pessoas.find(p => p.id === c.pessoaId), s = p ? dados.setores.find(s => s.id === p.setorId) : null; const statusClass = c.status === 'Disponível' ? 'status-disponivel' : 'status-em-uso'; const posseNome = p ? `${p.nome} ${s ? `(${s.nome})` : ''}` : '---'; let acoes = c.status === 'Disponível' ? `<button class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#retirarModal" data-chave-id="${c.id}">Retirar</button>` : `<button class="btn btn-sm btn-success me-2" data-bs-toggle="modal" data-bs-target="#devolverModal" data-chave-id="${c.id}">Devolver</button>`; acoes += `<i class="bi bi-trash btn-delete" onclick="excluirChave(${c.id})"></i>`; tabelaChavesBody.innerHTML += `<tr><td>${c.nome}</td><td class="${statusClass}">${c.status}</td><td>${posseNome}</td><td>${acoes}</td></tr>`; }); 
+                };
+                
+                const renderizarTabelaHistorico = () => { tabelaHistoricoBody.innerHTML = ''; const fTexto = filtroTextoEl.value.toLowerCase().trim(), fData = filtroDataEl.value, fAcao = filtroAcaoEl.value; let histFiltrado = dados.historico.filter(i => { const cN = i.chaveNome.toLowerCase(), pN = i.pessoaNome.toLowerCase(), sN = i.setorNome.toLowerCase(), rN = i.responsavelNome.toLowerCase(); const [dataItem] = i.dataHora.split(' '); const dF = dataItem.split('/').reverse().join('-'); const mT = !fTexto || cN.includes(fTexto) || pN.includes(fTexto) || sN.includes(fTexto) || rN.includes(fTexto); const mD = !fData || dF === fData; const mA = !fAcao || i.acao === fAcao; return mT && mD && mA; }); if (histFiltrado.length === 0) { tabelaHistoricoBody.innerHTML = '<tr><td colspan="7" class="text-center">Nenhum registro encontrado.</td></tr>'; return; } [...histFiltrado].reverse().forEach(i => { tabelaHistoricoBody.innerHTML += `<tr><td>${i.dataHora}</td><td>${i.chaveNome}</td><td>${i.pessoaNome}</td><td>${i.setorNome}</td><td>${i.responsavelNome}</td><td>${i.acao}</td><td><i class="bi bi-trash btn-delete" onclick="excluirRegistroHistorico(${i.id})"></i></td></tr>`; }); };
+                
+                const adicionarHistorico = (chaveId, pessoaId, responsavelId, acao) => {
+                    const c = dados.chaves.find(c => c.id === chaveId);
+                    const p = dados.pessoas.find(p => p.id === pessoaId);
+                    const r = dados.responsaveis.find(r => r.id === responsavelId);
+                    const s = p ? dados.setores.find(s => s.id === p.setorId) : null;
+                    
+                    dados.historico.push({
+                        id: Date.now(),
+                        chaveId: chaveId,
+                        pessoaId: pessoaId,
+                        responsavelId: responsavelId,
+                        acao: acao,
+                        dataHora: new Date().toLocaleString('pt-BR'),
+                        chaveNome: c?.nome || 'Chave Removida',
+                        pessoaNome: p?.nome || 'Pessoa Removida',
+                        setorNome: s?.nome || 'N/A',
+                        responsavelNome: r?.nome || 'Responsável Removido'
+                    });
+                };
+
+                window.excluirChave = (id) => { const c = dados.chaves.find(c => c.id === id); if (c.status === 'Em Uso') return alert('Não é possível excluir chave em uso.'); if (confirm(`Excluir chave "${c.nome}"?`)) { dados.chaves = dados.chaves.filter(c => c.id !== id); salvarDados(dados); renderizarTudo(); } };
+                window.excluirPessoa = (id) => { if (dados.chaves.some(c => c.pessoaId === id)) return alert('Não é possível excluir pessoa com chave.'); const p = dados.pessoas.find(p => p.id === id); if (confirm(`Excluir pessoa "${p.nome}"?`)) { dados.pessoas = dados.pessoas.filter(p => p.id !== id); salvarDados(dados); renderizarTudo(); } };
+                window.excluirSetor = (id) => { if (dados.pessoas.some(p => p.setorId === id)) return alert('Não é possível excluir setor com pessoas associadas.'); const s = dados.setores.find(s => s.id === id); if (confirm(`Excluir setor "${s.nome}"?`)) { dados.setores = dados.setores.filter(s => s.id !== id); salvarDados(dados); renderizarTudo(); } };
+                window.excluirResponsavel = (id) => { if (dados.historico.some(h => h.responsavelId === id)) return alert('Não é possível excluir responsável que já realizou movimentações.'); const r = dados.responsaveis.find(r => r.id === id); if (confirm(`Excluir responsável "${r.nome}"?`)) { dados.responsaveis = dados.responsaveis.filter(r => r.id !== id); salvarDados(dados); renderizarTudo(); } };
+                
+                window.excluirRegistroHistorico = (id) => {
+                    idHistoricoExcluirInput.value = id; 
+                    inputSenhaMestre.value = ''; 
+                    senhaMestreError.classList.add('d-none'); 
+                    senhaMestreModal.show(); 
+                };
+
+                formSenhaMestre.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const senhaDigitada = inputSenhaMestre.value;
+                    const historicoId = parseInt(idHistoricoExcluirInput.value);
+
+                    if (senhaDigitada === SENHA_MESTRE_EXCLUSAO) {
+                        if (confirm("Tem certeza que deseja excluir permanentemente este registro do histórico?")) {
+                            dados.historico = dados.historico.filter(h => h.id !== historicoId);
+                            salvarDados(dados);
+                            renderizarTabelaHistorico();
+                            senhaMestreModal.hide(); 
+                            alert('Registro do histórico excluído com sucesso.');
+                        }
+                    } else {
+                        senhaMestreError.classList.remove('d-none'); 
+                    }
+                });
+                
+                filtroChavesEl.addEventListener('input', renderizarTabelaChaves);
+                formAddChave.addEventListener('submit', e => { e.preventDefault(); const n = document.getElementById('nome-chave').value.trim(); if(n){ dados.chaves.push({ id: Date.now(), nome: n, status: 'Disponível', pessoaId: null }); salvarDados(dados); renderizarTudo(); bootstrap.Modal.getInstance(document.getElementById('addChaveModal')).hide(); } });
+                formAddSetor.addEventListener('submit', e => { e.preventDefault(); const n = document.getElementById('nome-setor').value.trim(); if(n){ dados.setores.push({ id: Date.now(), nome: n }); salvarDados(dados); renderizarTudo(); bootstrap.Modal.getInstance(document.getElementById('addSetorModal')).hide(); } });
+                formAddPessoa.addEventListener('submit', e => { e.preventDefault(); const n = document.getElementById('nome-pessoa').value.trim(), sId = parseInt(addPessoaModalEl.querySelector('#select-setor-pessoa').value); if(n && sId){ dados.pessoas.push({ id: Date.now(), nome: n, setorId: sId }); salvarDados(dados); renderizarTudo(); bootstrap.Modal.getInstance(addPessoaModalEl).hide(); } else { alert('Nome e Setor são obrigatórios.'); } });
+                formAddResponsavel.addEventListener('submit', e => { e.preventDefault(); const n = document.getElementById('nome-responsavel').value.trim(); if(n){ dados.responsaveis.push({ id: Date.now(), nome: n }); salvarDados(dados); renderizarTudo(); bootstrap.Modal.getInstance(document.getElementById('addResponsavelModal')).hide(); } });
+                
+                formRetirarChave.addEventListener('submit', e => { e.preventDefault(); const cId = parseInt(retirarModalEl.querySelector('#select-chave-retirar').value), pId = parseInt(retirarModalEl.querySelector('#select-pessoa-retirar').value), rId = parseInt(retirarModalEl.querySelector('#select-responsavel-retirar').value); const c = dados.chaves.find(c => c.id === cId); if (c && pId && rId) { c.status = 'Em Uso'; c.pessoaId = pId; adicionarHistorico(cId, pId, rId, 'Retirada'); salvarDados(dados); renderizarTudo(); bootstrap.Modal.getInstance(retirarModalEl).hide(); } else { alert('Todos os campos são obrigatórios.'); } });
+                formDevolverChave.addEventListener('submit', e => { e.preventDefault(); const cId = parseInt(devolverModalEl.querySelector('#select-chave-devolver').value), rId = parseInt(devolverModalEl.querySelector('#select-responsavel-devolver').value); const c = dados.chaves.find(c => c.id === cId); if (c && rId) { adicionarHistorico(cId, c.pessoaId, rId, 'Devolução'); c.status = 'Disponível'; c.pessoaId = null; salvarDados(dados); renderizarTudo(); bootstrap.Modal.getInstance(devolverModalEl).hide(); } else { alert('Todos os campos são obrigatórios.'); } });
+                
+                addPessoaModalEl.addEventListener('show.bs.modal', () => { const select = addPessoaModalEl.querySelector('#select-setor-pessoa'); select.innerHTML = '<option value="">Selecione...</option>'; dados.setores.forEach(s => { select.innerHTML += `<option value="${s.id}">${s.nome}</option>`; }); });
+                retirarModalEl.addEventListener('show.bs.modal', e => { const btn = e.relatedTarget; const chaveId = btn ? btn.getAttribute('data-chave-id') : null; const selectChave = retirarModalEl.querySelector('#select-chave-retirar'), selectPessoa = retirarModalEl.querySelector('#select-pessoa-retirar'), selectResp = retirarModalEl.querySelector('#select-responsavel-retirar'); selectChave.innerHTML = '<option value="">Selecione...</option>'; dados.chaves.filter(c => c.status === 'Disponível').forEach(c => { selectChave.innerHTML += `<option value="${c.id}">${c.nome}</option>`; }); selectPessoa.innerHTML = '<option value="">Selecione...</option>'; dados.pessoas.forEach(p => { const s = dados.setores.find(s => s.id === p.setorId); selectPessoa.innerHTML += `<option value="${p.id}">${p.nome} ${s ? `(${s.nome})` : ''}</option>`; }); selectResp.innerHTML = '<option value="">Selecione...</option>'; dados.responsaveis.forEach(r => { selectResp.innerHTML += `<option value="${r.id}">${r.nome}</option>`; }); if (chaveId) { selectChave.value = chaveId; } });
+                devolverModalEl.addEventListener('show.bs.modal', e => { const btn = e.relatedTarget; const chaveId = btn ? btn.getAttribute('data-chave-id') : null; const selectChave = devolverModalEl.querySelector('#select-chave-devolver'), selectResp = devolverModalEl.querySelector('#select-responsavel-devolver'); selectChave.innerHTML = '<option value="">Selecione...</option>'; dados.chaves.filter(c => c.status === 'Em Uso').forEach(c => { selectChave.innerHTML += `<option value="${c.id}">${c.nome}</option>`; }); selectResp.innerHTML = '<option value="">Selecione...</option>'; dados.responsaveis.forEach(r => { selectResp.innerHTML += `<option value="${r.id}">${r.nome}</option>`; }); if (chaveId) { selectChave.value = chaveId; } });
+                [retirarModalEl, devolverModalEl, addPessoaModalEl].forEach(modal => modal.addEventListener('hidden.bs.modal', () => modal.querySelector('form').reset()));
+
+                filtroTextoEl.addEventListener('input', renderizarTabelaHistorico); filtroDataEl.addEventListener('input', renderizarTabelaHistorico); filtroAcaoEl.addEventListener('change', renderizarTabelaHistorico);
+                btnLimparFiltros.addEventListener('click', () => { filtroTextoEl.value = ''; filtroDataEl.value = ''; filtroAcaoEl.value = ''; renderizarTabelaHistorico(); });
+                btnToggleHistorico.addEventListener('click', () => { const visivel = !areaHistorico.classList.contains('d-none'); if (visivel) { areaHistorico.classList.add('d-none'); btnToggleHistorico.textContent = 'Mostrar Histórico'; } else { areaHistorico.classList.remove('d-none'); btnToggleHistorico.textContent = 'Ocultar Histórico'; } });
+                btnExportar.addEventListener('click', () => { const dataStr = JSON.stringify(dados, null, 2); const dataBlob = new Blob([dataStr], { type: 'application/json' }); const url = URL.createObjectURL(dataBlob); const link = document.createElement('a'); const dataHoje = new Date().toISOString().split('T')[0]; link.href = url; link.download = `backup_chaves_${dataHoje}.json`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); alert('Backup exportado com sucesso!'); });
+                btnImportar.addEventListener('click', () => { inputImportFile.click(); });
+                inputImportFile.addEventListener('change', event => { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const dImp = JSON.parse(e.target.result); if (dImp.chaves && dImp.pessoas && dImp.setores && dImp.historico && dImp.responsaveis) { if (confirm('ATENÇÃO: Isso substituirá TODOS os dados atuais. Deseja continuar?')) { dados = dImp; salvarDados(dados); renderizarTudo(); alert('Dados importados com sucesso!'); } } else { alert('Erro: Arquivo de backup inválido.'); } } catch (error) { alert('Erro ao ler o arquivo.'); } finally { inputImportFile.value = ''; } }; reader.readAsText(file); });
+                
+                renderizarTudo();
+            }
+        });
+    </script>
+</body>
+</html>
